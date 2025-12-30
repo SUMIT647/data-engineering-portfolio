@@ -1,0 +1,137 @@
+services:
+  # PostgreSQL Database for Feature Storage
+  postgres:
+    image: postgres:15-alpine
+    container_name: de-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dataeng}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dataeng123}
+      POSTGRES_DB: ${POSTGRES_DB:-feature_store}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+    networks:
+      - data_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dataeng"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Apache Spark Master for Batch Processing
+  spark-master:
+    image: bitnami/spark:3.4.1
+    container_name: de-spark-master
+    environment:
+      - SPARK_MODE=master
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    ports:
+      - "8080:8080"
+      - "7077:7077"
+    volumes:
+      - ./services/spark-processing:/opt/spark-apps
+      - ./data:/opt/data
+    networks:
+      - data_network
+    restart: unless-stopped
+
+  # Apache Spark Worker
+  spark-worker:
+    image: bitnami/spark:3.4.1
+    container_name: de-spark-worker
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_MEMORY=2G
+      - SPARK_WORKER_CORES=2
+      - SPARK_RPC_AUTHENTICATION_ENABLED=no
+      - SPARK_RPC_ENCRYPTION_ENABLED=no
+      - SPARK_LOCAL_STORAGE_ENCRYPTION_ENABLED=no
+      - SPARK_SSL_ENABLED=no
+    depends_on:
+      - spark-master
+    volumes:
+      - ./services/spark-processing:/opt/spark-apps
+      - ./data:/opt/data
+    networks:
+      - data_network
+    restart: unless-stopped
+
+  # Apache Airflow - Postgres Backend
+  airflow-postgres:
+    image: postgres:15-alpine
+    container_name: de-airflow-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_postgres_data:/var/lib/postgresql/data
+    networks:
+      - data_network
+    restart: unless-stopped
+
+  # Apache Airflow Webserver & Scheduler
+  airflow:
+    build:
+      context: ./services/airflow
+      dockerfile: Dockerfile
+    container_name: de-airflow
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@airflow-postgres/airflow
+      - AIRFLOW__CORE__FERNET_KEY=81HqDtbqAywKSOumSha3BhWNOdQ26slT6K0YaZeZyPs=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW__WEBSERVER__SECRET_KEY=mysecretkey
+      - AIRFLOW_HOME=/opt/airflow
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=${POSTGRES_USER:-dataeng}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-dataeng123}
+      - POSTGRES_DB=${POSTGRES_DB:-feature_store}
+      - SPARK_MASTER_URL=spark://spark-master:7077
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./services/airflow/dags:/opt/airflow/dags
+      - ./services/ingestion:/opt/airflow/ingestion
+      - ./services/spark-processing:/opt/airflow/spark-apps
+      - ./data:/opt/airflow/data
+      - airflow_logs:/opt/airflow/logs
+    depends_on:
+      - airflow-postgres
+      - postgres
+      - spark-master
+    networks:
+      - data_network
+    restart: on-failure
+
+  # Ingestion Service (Standalone for manual runs)
+  ingestion:
+    build:
+      context: ./services/ingestion
+      dockerfile: Dockerfile
+    container_name: de-ingestion
+    environment:
+      - DATA_PATH=/opt/data
+    volumes:
+      - ./data:/opt/data
+      - ./services/ingestion:/app
+    networks:
+      - data_network
+    restart: "no"
+    command: ["python", "ingest_data.py"]
+
+networks:
+  data_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  airflow_postgres_data:
+  airflow_logs:

@@ -1,0 +1,29 @@
+{
+  "ingestion_date": "2025-12-29T12:50:01.005905",
+  "source_file": "customer_spending_1M_2018_2025.csv",
+  "files_created": 85,
+  "statistics": {
+    "total_records": 952793,
+    "date_range": {
+      "min": "2018-01-01",
+      "max": "2025-01-30"
+    },
+    "total_revenue": 1219410654.0199997,
+    "avg_transaction": 1279.8274693663784,
+    "unique_customers": 952793,
+    "states_count": 50,
+    "segments": {
+      "Basic": 429791,
+      "Silver": 186926,
+      "Platinum": 168057,
+      "Gold": 93574,
+      "Missing": 74445
+    },
+    "payment_methods": {
+      "PayPal": 443660,
+      "Card": 282799,
+      "Other": 226334
+    }
+  },
+  "execution_time_seconds": 9.661205
+}
