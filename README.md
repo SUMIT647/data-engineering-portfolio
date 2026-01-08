@@ -5,7 +5,7 @@ using Docker, Spark, PostgreSQL, and Airflow.
 
 ================================================================================
                     MANUAL STEP-BY-STEP STARTUP
-================================================================================
+
 
 Step 1: Navigate to the project directory in PowerShell
 Step 2: Copy 'customer_spending_1M_2018_2025.csv' to the data/ folder
@@ -22,7 +22,6 @@ Step 12: Pipeline execution is complete and features are ready
 
 ================================================================================
                         SERVICE ACCESS DETAILS
-================================================================================
 
 PostgreSQL Database:
   Hostname: localhost
@@ -44,7 +43,7 @@ Apache Airflow Web UI:
 
 ================================================================================
                          DATA PIPELINE FLOW
-================================================================================
+
 
 Step 1: Data Ingestion Service reads 'customer_spending_1M_2018_2025.csv' from data/ folder
 Step 2: Ingestion validates columns, cleans data, removes duplicates, handles missing values
@@ -61,7 +60,6 @@ Step 12: Features are ready for machine learning model training
 
 ================================================================================
                          AIRFLOW DAG WORKFLOWS
-================================================================================
 
 DAG 1: monthly_data_ingestion
   Schedule: 1st of every month at 00:00
@@ -85,7 +83,6 @@ DAG 4: data_quality_checks
 
 ================================================================================
                         USEFUL DOCKER COMMANDS
-================================================================================
 
 Step 1: View all running containers: docker-compose ps
 Step 2: View logs from specific service (e.g., postgres): docker-compose logs postgres -f
@@ -100,7 +97,7 @@ Step 10: Prune unused Docker resources: docker system prune
 
 ================================================================================
                         DATABASE OPERATIONS
-================================================================================
+
 
 Step 1: Connect to PostgreSQL from your machine: psql -h localhost -U dataeng -d feature_store -p 5432 (password: dataeng123)
 Step 2: List all tables in feature_store: \dt (when connected via psql)
@@ -116,7 +113,7 @@ Step 10: Exit PostgreSQL: \q
 
 ================================================================================
                         NEXT STEPS & FEATURES
-================================================================================
+
 
 Step 1: After features are generated, connect to PostgreSQL to explore customer_features table
 Step 2: Review quarterly_features for time-series trends and growth rates
